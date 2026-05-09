@@ -11,6 +11,8 @@ runs:
   using: composite
   steps:
     - id: self
+      env:
+        INPUT_MSG: ${{ inputs.msg }}
       run: |
         const val = inputs.get("msg");
         console.log(`outer sees msg=${val}`);

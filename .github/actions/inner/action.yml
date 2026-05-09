@@ -9,6 +9,8 @@ runs:
   using: composite
   steps:
     - id: run
+      env:
+        INPUT_MSG: ${{ inputs.msg }}
       run: |
         const val = inputs.get("msg");
         console.log(`inner sees msg=${val}`);
