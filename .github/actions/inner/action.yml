@@ -1,0 +1,17 @@
+name: "Inner composite"
+inputs:
+  msg:
+    required: true
+outputs:
+  result:
+    value: ${{ steps.run.outputs.result }}
+runs:
+  using: composite
+  steps:
+    - id: run
+      run: |
+        const val = inputs.get("msg");
+        console.log(`inner sees msg=${val}`);
+        await output.set("result", val ?? "undefined");
+        return val;
+      shell: octoscript {0}

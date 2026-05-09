@@ -1,0 +1,23 @@
+name: "Outer composite"
+inputs:
+  msg:
+    required: true
+outputs:
+  outer-result:
+    value: ${{ steps.self.outputs.result }}
+  inner-result:
+    value: ${{ steps.inner.outputs.result }}
+runs:
+  using: composite
+  steps:
+    - id: self
+      run: |
+        const val = inputs.get("msg");
+        console.log(`outer sees msg=${val}`);
+        await output.set("result", val ?? "undefined");
+      shell: octoscript {0}
+
+    - id: inner
+      uses: ./.github/actions/inner
+      with:
+        msg: "from-inner"
