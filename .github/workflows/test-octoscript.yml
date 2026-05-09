@@ -1,0 +1,89 @@
+name: Test octoscript shell
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup octoscript
+        uses: ./.github/actions/script/setup-octoscript
+
+      - name: Test basic globals
+        run: |
+          console.log("context.repo:", context.repo);
+          console.log("core available:", typeof core.info);
+          console.log("github available:", typeof github.rest);
+          console.log("Mustache available:", typeof Mustache.render);
+          console.log("template available:", typeof template);
+          console.log("git available:", typeof git.status);
+          core.info("✓ All globals injected");
+        shell: octoscript {0}
+
+      - name: Test octokit call
+        run: |
+          const { owner, repo } = context.repo;
+          const { data } = await github.rest.repos.get({ owner, repo });
+          console.log(`Repo: ${data.full_name} (${data.visibility})`);
+          core.info("✓ Octokit works");
+        shell: octoscript {0}
+
+      - name: Test output module
+        id: out
+        run: |
+          const output = await import("./.github/scripts/github/output.ts");
+          await output.set("greeting", "hello from octoscript");
+          await output.set("multiline", "line 1\nline 2\nline 3");
+          core.info("✓ Outputs written");
+        shell: octoscript {0}
+
+      - name: Verify outputs
+        run: |
+          echo "greeting=${{ steps.out.outputs.greeting }}"
+          echo "multiline=${{ steps.out.outputs.multiline }}"
+          test "${{ steps.out.outputs.greeting }}" = "hello from octoscript"
+          echo "✓ Outputs verified"
+
+      - name: Test shared module
+        run: |
+          const shared = await import("./.github/scripts/github/shared.ts");
+          await shared.set("test-key", "test-value");
+          const val = await shared.get("test-key");
+          console.log(`shared roundtrip: ${val}`);
+          if (val !== "test-value") throw new Error("shared roundtrip failed");
+          core.info("✓ Shared module works");
+        shell: octoscript {0}
+
+      - name: Test template
+        run: |
+          const fs = await import("node:fs/promises");
+          await fs.writeFile("test.mustache", "Hello {{name}}!");
+          const result = await template(new URL("file://" + Deno.cwd() + "/test.mustache"), { name: "octoscript" });
+          console.log(result);
+          if (result !== "Hello octoscript!") throw new Error("template failed");
+          core.info("✓ Template works");
+        shell: octoscript {0}
+
+      - name: Test git (simple-git)
+        run: |
+          const status = await git.status();
+          console.log("clean:", status.isClean());
+          console.log("branch:", status.current);
+          core.info("✓ Git works");
+        shell: octoscript {0}
+
+      - name: Test return value
+        id: retval
+        run: |
+          return "returned-from-octoscript";
+        shell: octoscript {0}
+
+      - name: Verify return value
+        run: |
+          echo "result=${{ steps.retval.outputs.result }}"
+          test '${{ steps.retval.outputs.result }}' = '"returned-from-octoscript"'
+          echo "✓ Return value captured"
