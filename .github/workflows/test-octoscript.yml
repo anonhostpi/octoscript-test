@@ -37,7 +37,6 @@ jobs:
       - name: Test output module
         id: out
         run: |
-          const output = await import("./.github/scripts/github/output.ts");
           await output.set("greeting", "hello from octoscript");
           await output.set("multiline", "line 1\nline 2\nline 3");
           core.info("✓ Outputs written");
@@ -52,7 +51,6 @@ jobs:
 
       - name: Test shared module
         run: |
-          const shared = await import("./.github/scripts/github/shared.ts");
           await shared.set("test-key", "test-value");
           const val = await shared.get("test-key");
           console.log(`shared roundtrip: ${val}`);
