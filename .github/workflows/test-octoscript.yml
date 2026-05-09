@@ -78,6 +78,28 @@ jobs:
           core.info("✓ Git works");
         shell: octoscript {0}
 
+      - name: Test inputs module
+        run: |
+          const names = inputs.list();
+          console.log("input names:", names);
+          core.info("✓ Inputs module works (lists INPUT_* env vars)");
+        shell: octoscript {0}
+
+      - name: Test shared/output as globals
+        id: globals-io
+        run: |
+          await shared.set("from-global", "it works");
+          const val = await shared.get("from-global");
+          console.log("shared via global:", val);
+          await output.set("via-global", "yes");
+          core.info("✓ shared + output accessible as globals");
+        shell: octoscript {0}
+
+      - name: Verify global IO
+        run: |
+          test "${{ steps.globals-io.outputs.via-global }}" = "yes"
+          echo "✓ output.set via global verified"
+
       - name: Test return value
         id: retval
         run: |
