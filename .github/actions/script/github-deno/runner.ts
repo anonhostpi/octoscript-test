@@ -140,7 +140,7 @@ try {
   // Raw script — wrap as default-export module
   const wrapped = [
     "export default async function(_g: any) {",
-    "  const { github, octokit, getOctokit, context, core, exec, glob, io, require, Mustache, template, git } = _g;",
+    "  const { github, octokit, getOctokit, context, core, exec, glob, io, require, Mustache, template, git, inputs, shared, output } = _g;",
     script,
     "}",
   ].join("\n");
