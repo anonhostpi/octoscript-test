@@ -1,43 +1,14 @@
-name: Test context.job and related runtime info
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
+name: Dump context
+on: [push, workflow_dispatch]
 jobs:
   test:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
       - uses: sw2m/octoscript/action@main
-
-      - name: Producer
-        id: producer
-        run: await output.set("val", "from-producer");
+      - id: prod
+        run: await output.set("val", "hello");
         shell: octoscript {0}
-
-      - name: Dump job context
-        run: |
-          console.log("context.job:", context.job);
-          console.log("context.job type:", typeof context.job);
-          if (typeof context.job === "object") {
-            console.log("context.job keys:", Object.keys(context.job));
-            console.log("context.job:", JSON.stringify(context.job, null, 2));
-          }
-          // Check if job has steps or status info
-          for (const k of Object.keys(context)) {
-            const v = context[k];
-            const t = typeof v;
-            if (t === "object" && v !== null) {
-              console.log(`context.${k}: [${t}] keys=${Object.keys(v).join(",")}`);
-            } else {
-              console.log(`context.${k}: [${t}] ${String(v).slice(0, 80)}`);
-            }
-          }
-          // Also check github.rest for job/step APIs
-          console.log("=== actions API ===");
-          console.log("listJobsForWorkflowRun:", typeof github.rest.actions.listJobsForWorkflowRun);
-          console.log("runId:", context.runId);
+      - run: console.log(JSON.stringify(context, null, 2));
         shell: octoscript {0}
