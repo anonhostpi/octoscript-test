@@ -1,0 +1,46 @@
+name: Test step output access in octoscript
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: sw2m/octoscript/action@main
+
+      - name: Step A — set output
+        id: a
+        run: |
+          await output.set("greeting", "hello from step A");
+          await output.set("multiline", "line 1\nline 2\nline 3");
+        shell: octoscript {0}
+
+      - name: Step B — read via interpolation
+        run: |
+          const val = "${{ steps.a.outputs.greeting }}";
+          console.log("interpolated:", val);
+          if (val !== "hello from step A") throw new Error("interpolation failed");
+          console.log("✓ interpolation works");
+        shell: octoscript {0}
+
+      - name: Step C — read via env passthrough
+        env:
+          MULTI: ${{ steps.a.outputs.multiline }}
+        run: |
+          const val = Deno.env.get("MULTI");
+          console.log("env lines:", val?.split("\n").length);
+          if (val !== "line 1\nline 2\nline 3") throw new Error("env multiline failed");
+          console.log("✓ env multiline works");
+        shell: octoscript {0}
+
+      - name: Step D — read multiline via interpolation
+        run: |
+          const val = `${{ steps.a.outputs.multiline }}`;
+          console.log("template-literal lines:", val.split("\n").length);
+          console.log("✓ multiline interpolation works (or doesn't — let's see)");
+        shell: octoscript {0}
