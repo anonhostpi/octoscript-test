@@ -1,0 +1,57 @@
+name: Test if context has step outputs at runtime
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: sw2m/octoscript/action@main
+
+      - name: Producer
+        id: producer
+        run: await output.set("val", "runtime-data");
+        shell: octoscript {0}
+
+      - name: Check context for step info
+        run: |
+          console.log("=== context keys ===");
+          console.log(Object.keys(context));
+          console.log("=== context.action ===", context.action);
+          console.log("=== context.payload keys ===", Object.keys(context.payload));
+          
+          // Check if steps exist anywhere
+          if (context.steps) {
+            console.log("context.steps:", JSON.stringify(context.steps));
+          } else {
+            console.log("context.steps: NOT PRESENT");
+          }
+          
+          // Check core for step-reading methods
+          const coreMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(core) || core)
+            .concat(Object.keys(core))
+            .filter(k => typeof core[k] === 'function');
+          console.log("=== core methods ===", coreMethods.join(", "));
+          
+          // Check if GITHUB_STATE has anything
+          const state = Deno.env.get("GITHUB_STATE");
+          console.log("GITHUB_STATE path:", state);
+          if (state) {
+            try {
+              const content = await Deno.readTextFile(state);
+              console.log("GITHUB_STATE content:", content || "(empty)");
+            } catch { console.log("GITHUB_STATE: unreadable"); }
+          }
+          
+          // Check all GITHUB_* env vars
+          for (const [k, v] of Object.entries(Deno.env.toObject())) {
+            if (k.startsWith("GITHUB_") && !k.includes("TOKEN")) {
+              console.log(`  ${k}=${v.slice(0, 80)}`);
+            }
+          }
+        shell: octoscript {0}
